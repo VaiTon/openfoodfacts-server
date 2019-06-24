@@ -24205,6 +24205,7 @@ fr:Desserts au café
 nl:Koffietoetjes, koffiedesserts
 zh:咖啡甜品, 咖啡甜点
 
+<en:Plant-based spreads
 <en:Fruits based foods
 en:Fruit chutneys
 fr:Chutneys de fruit
@@ -24212,12 +24213,12 @@ nl:Fruitchutney
 
 <en:Fruit chutneys
 en:Apple chutneys
-fr:Chutneys de pomme
+fr:Confits de pommme, Chutneys de pomme
 nl:Appelchutney
 
 <en:Fruit chutneys
 en:Fig chutneys
-fr:Chutneys de figues 
+fr:Confits de figues, chutneys de figues 
 nl:Vijgenchutney
 
 
@@ -24491,6 +24492,9 @@ nl:vanilla vla's
 <en:Dessert creams
 fr:Crèmes dessert caramel, Crème dessert caramel, Crèmes dessert au caramel, Crème dessert au caramel
 nl:Caramel vla's
+
+<en:Dessert creams
+fr:Crèmes dessert café
 
 <en:Desserts
 en:Non-dairy desserts, vegetal desserts, vegan desserts
@@ -25352,6 +25356,7 @@ it:Miele di agrumi
 nl:Citrusvruchtenhoningen
 
 <fr:Miels d’agrumes
+es:Mieles de azahar, Mieles de naranjo
 fr:Miels d’oranger, Miel d’oranger
 de:Orangenbaumhonige
 it:Miele di arancio
@@ -25369,6 +25374,7 @@ de:Mandarinenbaumhonige
 nl:Mandarijnbloesemhoningen
 
 <en:Honeys
+es:Mieles de eucaliptus
 fr:Miels d'eucalyptus
 de:Eukalyptushonige
 it:Miele di eucalipto
@@ -25383,6 +25389,7 @@ fr:Miels de bleuet
 nl:Korenbloemenhoningen
 
 <en:Honeys
+es:Mieles de brezo
 fr:Miels de bruyère
 nl:Heidehoningen
 
@@ -25397,6 +25404,7 @@ nl:Stuikheidehoningen
 
 <en:Honeys
 en:Chestnut honey
+es:Mieles de castaño
 fr:Miels de châtaignier
 it:Miele di castagno
 nl:Kastanjebloesemhoningen
@@ -25423,6 +25431,7 @@ fr:Miels de pin
 nl:Pijnboomhoningen
 
 <en:Honeys
+es:Mieles de flores
 fr:Miels de fleurs, Miel de fleurs, Miels toutes fleurs
 nl:Bloemenhoningen
 
@@ -25461,6 +25470,7 @@ nl:Lavendelhoningen
 
 <en:Honeys
 en:Thyme honey
+es:Mieles de tomillo
 fr:Miels de thym
 it:Miele di timo
 nl:Tijmhoning
@@ -25541,6 +25551,7 @@ nl:Vloeibare honingen
 pt:Méis líquidos
 
 <fr:Miels
+es:Mieles de romero
 fr:Miels de romarin
 it:Miele di rosmarino
 nl:Rozemarijnhoningen
@@ -38450,10 +38461,14 @@ nl:Zoute smeerpastas
 pl:Słone smarowidła, słone pasty do smarowania
 pnns_group_2:en:Salty and fatty products
 
-<en:Spreads
+<en:Salted spreads
+<en:Onions and their products
 en:Onion chutneys
-fr:Chutneys d'oignons
+fr:Confits d'oignons, Chutneys d'oignons
 nl:Uienchutney
+
+<en:Salted spreads
+fr:Crèmes d'artichaut
 
 <en:Salted spreads
 en:Tapenades, tapenade
@@ -39205,8 +39220,7 @@ la:Allium cepa
 nl:Ui en afgeleide producten
 wikidata:en:Q23485
 
-<en:Onions and their products
-fr:Confits d'oignons
+
 
 <en:Onions and their products
 en:Fried onions

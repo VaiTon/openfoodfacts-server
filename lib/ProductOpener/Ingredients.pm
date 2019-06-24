@@ -35,6 +35,7 @@ BEGIN
 		&extract_ingredients_from_text
 
 		&compute_carbon_footprint_from_ingredients
+		&compute_carbon_footprint_from_meat_or_fish
 
 		&clean_ingredients_text_for_lang
 		&clean_ingredients_text
@@ -153,13 +154,68 @@ sub compute_carbon_footprint_from_ingredients($) {
 	my $product_ref = shift;
 
 	if (defined $product_ref->{nutriments}) {
+		delete $product_ref->{nutriments}{"carbon-footprint-from-known-ingredients_100g"};
+	}
+
+	remove_tag($product_ref, "misc", "en:environment-infocard");
+	remove_tag($product_ref, "misc", "en:carbon-footprint-from-known-ingredients");
+	
+	delete $product_ref->{"carbon_footprint_from_known_ingredients_debug"};
+
+	# Limit to France, as the carbon values from ADEME are intended for France
+	if ((has_tag($product_ref, "countries", "en:france")) and (defined $product_ref->{ingredients})) {
+
+		my $carbon_footprint = 0;
+		my $carbon_percent = 0;
+
+		foreach my $ingredient_ref (@{$product_ref->{ingredients}}) {
+
+			$log->debug("carbon-footprint-from-known-ingredients_100g", { id =>  $ingredient_ref->{id} }) if $log->is_debug();
+
+			if ((defined $ingredient_ref->{percent}) and ($ingredient_ref->{percent} > 0)) {
+
+				$log->debug("carbon-footprint-from-known-ingredients_100g", { percent =>  $ingredient_ref->{percent} }) if $log->is_debug();
+
+				my $carbon_footprint_ingredient = get_inherited_property('ingredients', $ingredient_ref->{id}, "carbon_footprint_fr_foodges_value:fr");
+
+				if(defined $carbon_footprint_ingredient)
+				{
+					$carbon_footprint += $ingredient_ref->{percent} * $carbon_footprint_ingredient;
+					$carbon_percent	+= $ingredient_ref->{percent};
+					
+					if (not defined $product_ref->{"carbon_footprint_from_known_ingredients_debug"}) {
+						$product_ref->{"carbon_footprint_from_known_ingredients_debug"} = "";
+					}
+					$product_ref->{"carbon_footprint_from_known_ingredients_debug"} .= $ingredient_ref->{id}
+					. " " . $ingredient_ref->{percent} . "% x $carbon_footprint_ingredient = " . $ingredient_ref->{percent} * $carbon_footprint_ingredient . " g - ";					
+				}
+			}
+		}
+
+		if ($carbon_footprint > 0) {
+			$product_ref->{nutriments}{"carbon-footprint-from-known-ingredients_100g"} = $carbon_footprint;
+			$product_ref->{carbon_footprint_percent_of_known_ingredients} = $carbon_percent;
+
+			defined $product_ref->{misc_tags} or $product_ref->{misc_tags} = [];
+			add_tag($product_ref, "misc", "en:carbon-footprint-from-known-ingredients");
+		}
+	}
+}
+
+
+sub compute_carbon_footprint_from_meat_or_fish($) {
+
+	my $product_ref = shift;
+
+	if (defined $product_ref->{nutriments}) {
 		delete $product_ref->{nutriments}{"carbon-footprint-from-meat-or-fish"};
 		delete $product_ref->{nutriments}{"carbon-footprint-from-meat-or-fish_100g"};
 		delete $product_ref->{nutriments}{"carbon-footprint-from-meat-or-fish_serving"};
 		delete $product_ref->{nutriments}{"carbon-footprint-from-meat-or-fish_product"};
 	}
+	
+	remove_tag($product_ref, "misc", "en:carbon-footprint-from-meat-or-fish");
 
-	remove_tag($product_ref, "misc", "en:environment-infocard");
 	delete $product_ref->{"carbon_footprint_from_meat_or_fish_debug"};
 
 	# Compute the carbon footprint from meat or fish ingredients, when the percentage is known
@@ -208,14 +264,13 @@ sub compute_carbon_footprint_from_ingredients($) {
 
 		my $carbon_footprint = 0;
 
-
 		foreach my $ingredient_ref (@{$product_ref->{ingredients}}) {
 
-			$log->debug("compute_carbon_footprint_from_ingredients", { id =>  $ingredient_ref->{id} }) if $log->is_debug();
+			$log->debug("compute_carbon_footprint_from_meat_or_fish", { id =>  $ingredient_ref->{id} }) if $log->is_debug();
 
 			if ((defined $ingredient_ref->{percent}) and ($ingredient_ref->{percent} > 0)) {
 
-				$log->debug("compute_carbon_footprint_from_ingredients", { percent =>  $ingredient_ref->{percent} }) if $log->is_debug();
+				$log->debug("compute_carbon_footprint_from_meat_or_fish", { percent =>  $ingredient_ref->{percent} }) if $log->is_debug();
 
 				foreach my $parent (@parents) {
 					if (is_a('ingredients', $ingredient_ref->{id}, $parent)) {
@@ -226,7 +281,7 @@ sub compute_carbon_footprint_from_ingredients($) {
 							$product_ref->{"carbon_footprint_from_meat_or_fish_debug"} = "";
 						}
 						$product_ref->{"carbon_footprint_from_meat_or_fish_debug"} .= $ingredient_ref->{id} . " => " . $parent
-						. " " . $ingredient_ref->{percent} . "% = " . $ingredient_ref->{percent} * $carbon{$parent} . " g - ";
+						. " " . $ingredient_ref->{percent} . "% x $carbon{$parent} = " . $ingredient_ref->{percent} * $carbon{$parent} . " g - ";
 
 						last;
 					}
@@ -238,14 +293,11 @@ sub compute_carbon_footprint_from_ingredients($) {
 			$product_ref->{nutriments}{"carbon-footprint-from-meat-or-fish_100g"} = $carbon_footprint;
 			$product_ref->{"carbon_footprint_from_meat_or_fish_debug"} =~ s/ - $//;
 			defined $product_ref->{misc_tags} or $product_ref->{misc_tags} = [];
-			add_tag($product_ref, "misc", "en:environment-infocard");
+			add_tag($product_ref, "misc", "en:carbon-footprint-from-meat-or-fish");
 		}
-		else {
-			remove_tag($product_ref, "misc", "en:environment-infocard");
-		}
-
 	}
 }
+
 
 
 sub extract_ingredients_from_image($$$$) {
@@ -765,6 +817,9 @@ fr => [
 'ingr(e|é)dients(\s*)(-|:|\r|\n)+',	# need a colon or a line feed
 'Quels Ingr(e|é)dients ?', # In Casino packagings
 'ingr(e|é)dient(\s*)(-|:|\r|\n)+',
+'composition(\s*)(-|:|\r|\n)+',
+#'ingr(e|é)dienits(\s*)(-|:|\r|\n)+',
+#'rédients(\s*)(-|:|\r|\n)+', # in case OCR cuts the word https://world.openfoodfacts.org/product/4024297006305/mayonnaise-demeter-en-tube-naturata
 ],
 
 
@@ -787,7 +842,7 @@ it => [
 ],
 
 cs => [
-'složení',
+'složení(\s*)(\s|-|:|\r|\n)+',
 ],
 
 pt => [
@@ -815,15 +870,16 @@ de => [
 ],
 
 fi => [
-'ainesosat:(\s*)(\s|-|:|\r|\n)+',
+'ainesosat(\s*)(\s|-|:|\r|\n)+',
 ],
 
 sv => [
-'ingredienser:(\s*)(\s|-|:|\r|\n)+',
+'ingredienser(\s*)(\s|-|:|\r|\n)+',
 ],
 
 ru => [
-'Состав:(\s*)(\s|-|:|\r|\n)+',
+'Состав(\s*)(\s|-|:|\r|\n)+',
+'Ингредиенты(\s*)(\s|-|:|\r|\n)+',
 ],
 
 );
@@ -833,7 +889,7 @@ my %phrases_before_ingredients_list_uppercase = (
 
 fr => [
 
-'INGR(E|É)DIENTS(\s*)(\s|-|:|\r|\n)+',	# need a colon or a line feed
+'INGR(E|É)(D|0|O)IENTS(\s*)(\s|-|:|\r|\n)+',	# need a colon or a line feed
 'INGR(E|É)DIENT(\s*)(-|:|\r|\n)+',
 
 ],
@@ -843,16 +899,19 @@ cs => [
 ],
 
 de => [
-
 'ZUTATEN(\s*)(-|:|\r|\n)+',	# need a colon or a line feed
 #@hangy Does that regex handle ZUTAT: ?
 ],
 
 es => [
-
 'INGREDIENTES(\s*)(\s|-|:|\r|\n)+',
-
 ],
+
+
+hu => [
+'(Ö|O|0)SSZETEVOK(\s*)(\s|-|:|\r|\n)+',
+],
+
 
 pt => [
 
@@ -870,15 +929,11 @@ it => [
 ],
 
 nl => [
-
 'INGREDI(E|Ë)NTEN(\s*)(\s|-|:|\r|\n)+',
-
 ],
 
 de => [
-
 'ZUTATEN(\s*)(\s|-|:|\r|\n)+',
-
 ],
 
 fi => [
@@ -893,6 +948,8 @@ sv => [
 'INGREDIENSER:(\s*)(\s|-|:|\r|\n)+',
 ],
 
+
+
 );
 
 
@@ -902,23 +959,28 @@ my %phrases_after_ingredients_list = (
 
 fr => [
 
-'(valeurs|informations|d(e|é)claration|analyse|rep(e|è)res) (nutritionnel)',
+'(va(l|t)eurs|informations|d(e|é)claration|analyse|rep(e|è)res) (nutritionnel)',
+'caractéristiques nu(t|f)ritionnelles',
 'valeurs mo(y|v)ennes',
 'valeurs nutritionelles moyennes',
 'valeur nutritionnelle mo(y|v)enne',
+'valeur nutritionnelle',
 'information nutritionnelle',
 'nutritionnelles mo(y|v)ennes', 	# in case of ocr issue on the first word "valeurs" v in case the y is cut halfway
 'nutritionnelles pour 100g', #Arôme Valeum nutritionnelles pour 100g: Energie
 'moyennes pour 100g',
 'valeur(s?) (e|é)nerg(e|é)tique',
 'valeur(s?) nutritives',
+'valeur nutritive',
 'apport de r(e|é)ference pour un adulte type',
 '((\d+)(\s?)kJ\s+)?(\d+)(\s?)kcal',
 '(a|à) consommer de préférence',
+'(a|à) consommer de',
+'de préférence avant le',
 '(a|à) cons.de préférence avant',
-'conseils de pr(e|é)paration',
-'conseil de pr(e|é)paration',
-'conditions de conservation',
+'(conseil|conseils) de pr(e|é)paration',
+'(conditions|conseils) de conservation',
+'conseil d\'utilisation',
 'conservation:',
 '(a|à) protéger de ', # humidité, chaleur, lumière etc.
 'conditionn(e|é) sous atmosph(e|è)re protectrice',
@@ -927,13 +989,15 @@ fr => [
 '(a|à) conserver (dans|de|a|à)',
 '(a|à)conserver (dans|de|a|à)', #variation
 '(a|à)conserver entre',
-'apr(e|è)s ouverture',
-'apr(e|è)s achat',
+'apr(e|è)s (ouverture|achat)',
 'dans le compartiment (a|à) gla(c|ç)ons',
 'pr(e|é)paration au four',
 'dont sucres',
-'dont acides ras satur(e|é)s',
-'dont acides gras satur(e|é)s',
+'dont acides (gras|ras) satur(e|é)s',
+'N(o|ò)us vous conseillons',
+'ne jamais recongeler un produit décongelé',
+'pensez au tri',
+'tenir à l\'abri',
 #'ne pas laisser les enfants' # Ne pas laisser les enfants de moins de 36 mols sans surveillance avec le bouchon dévissable. BT Daonan ar
 #`etten/Matières grasses`, # (Vetten mais j'avais Netten/Matières grasses)
 #'dont sucres',
@@ -950,7 +1014,11 @@ en => [
 'nutrition values',
 'of whlch saturates',
 'of which saturates',
+'of which saturated fat',
 '((\d+)(\s?)kJ\s+)?(\d+)(\s?)kcal',
+'once opened keep in the refrigerator',
+#'Best before',
+#'See bottom of tin',
 
 ],
 
@@ -978,14 +1046,23 @@ de => [
 'Vorbereitung Tipps',
 'Mindestens altbar bis',
 'Mindestens haltbar bis',
-'Durchschnittliche N(â|a|ä)hrwerte',
+'Durchschnittliche N(â|a|ä)hrwert(angaben|angabe)',
+'N(â|a|ä)hrwert(angaben|angabe|information|tabelle)', #Nährwertangaben pro 100g
+'N(â|a|ä)hrwerte je',
 'davon ges(â|a|ä)ttigte',
 'Nâhrwerte',
 'k(u|ü)hl und trocken lagern',
+'Vor W(â|a|ä)rme und Feuchtigkeit sch(u|ü)tzen',
+'Unge(ö|o)ffnet bei max.', 
+'zu verbrauchen bis',
+'verbrauchen bis',
+'100 (ml|g) enthalten durchschnittlich',
+'Durchschnittlich enthalten 100 (ml|g)',
 ],
 
 nl => [
 'voedingswaarden',
+'voedingswaarde',
 'voorbereidingstips',
 'gemiddelde voedingswaarden',
 'gemiddelde voedingswaarde per 100 g',
@@ -997,6 +1074,9 @@ it => [
 'consigli per la preparazione',
 'di cui zuccheri',
 'Valori nutritivi',
+'Conservare in luogo fresco e asciutto',
+'MODALITA D\'USO',
+'MODALITA DI CONSERVAZIONE',
 ],
 
 cs => [
@@ -1150,6 +1230,7 @@ sub preparse_ingredients_text($$) {
 	my $text = shift;
 
 	$text =~ s/\&quot;/"/g;
+	$text =~ s/’/'/g;
 
 	# vitamins...
 	# vitamines A, B1, B2, B5, B6, B9, B12, C, D, H, PP et E (lactose, protéines de lait)
@@ -1271,6 +1352,7 @@ sub preparse_ingredients_text($$) {
 "lécithine",
 
 "carbonate",
+"carbonates acides",
 "chlorure",
 "citrate",
 "iodure",
